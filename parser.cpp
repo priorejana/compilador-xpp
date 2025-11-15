@@ -103,9 +103,30 @@ Parser::initSimbolTable()
 	globalST->add(new STEntry(t, true));
 	t = new Token(EXTENDS, "extends");
     globalST->add(new STEntry(t, true));
-    t = new Token(PUBLIC, "public");
+	t = new Token(INT, "int");
     globalST->add(new STEntry(t, true));
-	//CONTINUAR...
+	t = new Token(STRING, "string");
+    globalST->add(new STEntry(t, true));
+	t = new Token(BREAK, "break");
+    globalST->add(new STEntry(t, true));
+	t = new Token(PRINT, "print");
+    globalST->add(new STEntry(t, true));
+	t = new Token(READ, "read");
+    globalST->add(new STEntry(t, true));
+	t = new Token(RETURN, "return");
+    globalST->add(new STEntry(t, true));
+	t = new Token(SUPER, "super");
+    globalST->add(new STEntry(t, true));
+	t = new Token(IF, "if");
+    globalST->add(new STEntry(t, true));
+	t = new Token(ELSE, "else");
+    globalST->add(new STEntry(t, true));
+	t = new Token(FOR, "for");
+    globalST->add(new STEntry(t, true));
+	t = new Token(NEW, "new");
+    globalST->add(new STEntry(t, true));
+	t = new Token(CONSTRUCTOR, "constructor");
+    globalST->add(new STEntry(t, true));
 }
 
 void
