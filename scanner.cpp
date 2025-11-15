@@ -39,7 +39,6 @@ Scanner::nextToken()
 
     while (true)
     {
-
         if (pos >= input.length())
         {
             return new Token(END_OF_FILE);
@@ -72,6 +71,7 @@ Scanner::nextToken()
                 tok = new Token(ID, lexeme);
             else
                 tok = new Token(obj->token->name);
+            return tok;
         }
 
         if (isdigit(input[pos]))

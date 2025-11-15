@@ -8,3 +8,6 @@ xpp_compiler
 
 # Pasta de build do VS Code
 .vscode/
+
+# Arquivo Teste
+*.xpp
