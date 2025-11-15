@@ -1,0 +1,10 @@
+# Arquivos executáveis
+*.exe
+xpp_compiler
+
+# Arquivos objeto
+*.o
+*.obj
+
+# Pasta de build do VS Code
+.vscode/
