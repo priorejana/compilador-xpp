@@ -27,7 +27,7 @@ void Parser::run()
 	program();
 	if (lToken->name != END_OF_FILE)
 	{
-		error("Erro: Código inesperado encontrado após o fim do programa.");
+		error("Erro inesperado");
 	}
 
 	cout << "Compilação encerrada com sucesso!\n";
@@ -36,9 +36,10 @@ void Parser::run()
 void Parser::program()
 {
 	if (lToken->name == CLASS)
+	{
 		classList();
-	else
-		error("Erro: O programa deve começar com 'class'.");
+	}
+	
 }
 
 void Parser::classList()
