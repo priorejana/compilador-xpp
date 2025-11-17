@@ -6,6 +6,7 @@ Parser::Parser(string input)
 	initSimbolTable();
 
 	scanner = new Scanner(input, globalST);
+	lToken = scanner->nextToken();
 }
 
 void Parser::advance()
@@ -23,56 +24,11 @@ void Parser::match(int t)
 
 void Parser::run()
 {
-	advance();
-
 	program();
-
-	// TESTE DO SCANNER
-	/*
-	cout << "--- INICIANDO TESTE DO SCANNER (ETAPA 1) ---" << endl;
-	cout << "-------------------------------------------" << endl;
-	while (lToken->name != END_OF_FILE)
+	if (lToken->name != END_OF_FILE)
 	{
-		cout << "Linha: " << scanner->getLine()
-			 << "\tToken: " << lToken->name
-			 << "\tLexema: '" << lToken->lexeme << "'" << endl;
-
-		advance(); // Pede o próximo token
+		error("Erro: Código inesperado encontrado após o fim do programa.");
 	}
-	// Imprime o último token (EOF)
-	cout << "Linha: " << scanner->getLine()
-		 << "\tToken: " << lToken->name
-		 << "\tLexema: '" << lToken->lexeme << "'" << endl;
-	cout << "-------------------------------------------" << endl;
-	*/
-
-	// TESTE DA TABELA DE SÍMBOLOS
-	/*
-	currentST = new SymbolTable(currentST);
-	currentST = new SymbolTable(currentST);
-	if (currentST->add(new STEntry(new Token(ID), "bianca")))
-		cout << "Adição de bianca deu certo" << endl;
-	else
-		cout << "Adição de bianca não deu certo" << endl;
-
-	STEntry* obj = currentST->get("bianca");
-
-	if (obj)
-		cout << "Encontrei o símbolo " << obj->lexeme << endl;
-	else
-		cout << "Não encontrei o símbolo buscado" << endl;
-
-	//Fim do escopo
-	currentST = currentST->getParent();
-
-	obj = currentST->get("bianca");
-
-	if (obj)
-		cout << "Encontrei o símbolo " << obj->lexeme << endl;
-	else
-		cout << "Não encontrei o símbolo buscado" << endl;*/
-
-	/////////////////////////////
 
 	cout << "Compilação encerrada com sucesso!\n";
 }
@@ -81,6 +37,8 @@ void Parser::program()
 {
 	if (lToken->name == CLASS)
 		classList();
+	else
+		error("Erro: O programa deve começar com 'class'.");
 }
 
 void Parser::classList()
@@ -107,25 +65,71 @@ void Parser::classDecl()
 
 void Parser::classBody()
 {
-	match(SEP_LCHAVE);
-	varDeclListOpt();
-	constructDeclListOpt();
-	methodDeclListOpt();
-	match(SEP_RCHAVE);
+	currentST = new SymbolTable(currentST);
+	match(SEP_LCHAVE);    
+	classContentListOpt();
+    match(SEP_RCHAVE);
+	currentST = currentST->getParent();
 }
 
-void Parser::varDeclListOpt()
+void Parser::classContentListOpt()
 {
-	if (lToken->name == INT || lToken->name == STRING || lToken->name == ID)
+	if (lToken->name == INT || lToken->name == STRING || lToken->name == ID || lToken->name == CONSTRUCTOR)
 	{
-		varDeclList();
+		classContentList();
 	}
+}
+
+void Parser::classContentList()
+{
+	classContent();
+	while (lToken->name == INT || lToken->name == STRING || lToken->name == ID || lToken->name == CONSTRUCTOR)
+	{
+		classContent();
+	}
+	
+}
+
+void Parser::classContent()
+{
+	if (lToken->name == CONSTRUCTOR)
+    {
+        constructDecl(); 
+    }
+    else if (lToken->name == INT || lToken->name == STRING || lToken->name == ID)
+    {
+		type();
+		if (lToken->name == SEP_LCOLC)
+		{
+			match(SEP_LCOLC);
+			match(SEP_RCOLC);
+		}
+		match(ID);
+		varOrMethod();
+	}
+	else 
+	{
+		error("Esperado um construtor, variável ou método.");
+	}
+}
+
+void Parser::varOrMethod()
+{
+	if (lToken->name == SEP_LPAREN)
+	{
+		methodBody();
+	}
+	else
+	{
+		varDeclOpt();
+		match(SEP_PONTOVIRG);
+	} 
 }
 
 void Parser::varDeclList()
 {
 	varDecl();
-	while (lToken->name == INT || lToken->name == STRING || lToken->name == ID)
+	while (lToken->name == INT || lToken->name == STRING)
 	{
 		varDecl();
 	}
@@ -134,6 +138,11 @@ void Parser::varDeclList()
 void Parser::varDecl()
 {
 	type();
+	if (lToken->name == SEP_LCOLC)
+	{
+		match(SEP_LCOLC);
+		match(SEP_RCOLC);
+	}
 	match(ID);
 	varDeclOpt();
 	match(SEP_PONTOVIRG);
@@ -169,61 +178,24 @@ void Parser::type()
 	}
 }
 
-void Parser::constructDeclListOpt()
-{
-	if (lToken->name == CONSTRUCTOR)
-	{
-		constructDeclList();
-	}
-}
-
-void Parser::constructDeclList()
-{
-	constructDecl();
-	while (lToken->name == CONSTRUCTOR)
-	{
-		constructDecl();
-	}
-}
-
 void Parser::constructDecl()
 {
 	match(CONSTRUCTOR);
 	methodBody();
 }
 
-void Parser::methodDeclListOpt()
-{
-	if (lToken->name == INT || lToken->name == STRING || lToken->name == ID)
-	{
-		methodDeclList();
-	}
-}
-
-void Parser::methodDeclList()
-{
-	methodDecl();
-	while (lToken->name == INT || lToken->name == STRING || lToken->name == ID)
-	{
-		methodDecl();
-	}
-}
-
-void Parser::methodDecl()
-{
-	type();
-	match(ID);
-	methodBody();
-}
-
 void Parser::methodBody()
 {
+	currentST = new SymbolTable(currentST);
+
 	match(SEP_LPAREN);
 	paramListOpt();
 	match(SEP_RPAREN);
 	match(SEP_LCHAVE);
 	statementsOpt();
 	match(SEP_RCHAVE);
+
+	currentST = currentST->getParent();
 }
 
 void Parser::paramListOpt()
@@ -274,21 +246,18 @@ void Parser::statement()
 	switch (lToken->name)
 	{
 	case ID:
-	case INT:
-	case STRING:
-		if (lToken->name == INT || lToken->name == STRING || lToken->name == ID)
-		{
-			if (lToken->name == INT || lToken->name == STRING)
-			{
-				varDeclList();
-			}
-			else if (lToken->name == ID)
-			{
-				atribStat();
-				match(SEP_PONTOVIRG);
-			}
-		}
-		break;
+    case INT:
+    case STRING:
+        if (lToken->name == INT || lToken->name == STRING)
+        {
+            varDecl(); 
+        }
+        else
+        {
+			atribStat();
+            match(SEP_PONTOVIRG);
+        }
+        break;
 	case PRINT:
 		printStat();
 		match(SEP_PONTOVIRG);
@@ -328,7 +297,7 @@ void Parser::atribStat()
 {
 	lValue();
 	match(OP_EQ);
-	if (lToken->name == NEW)
+	if (lToken->name == NEW || lToken->name == INT || lToken->name == STRING)
 	{
 		allocExpression();
 	}
@@ -372,7 +341,7 @@ void Parser::lValue()
 
 void Parser::lValueComp()
 {
-	while (lToken->name == SEP_PONTO || lToken->name == SEP_LCOLC)
+	while (lToken->name == SEP_PONTO || lToken->name == SEP_LCOLC || lToken->name == SEP_LPAREN)
 	{
 		if (lToken->name == SEP_PONTO)
 		{
@@ -396,6 +365,12 @@ void Parser::lValueComp()
 			match(SEP_LCOLC);
 			expression();
 			match(SEP_RCOLC);
+		}
+		else if (lToken->name == SEP_LPAREN)
+		{
+			match(SEP_LPAREN);
+            argListOpt();
+            match(SEP_RPAREN);
 		}
 	}
 }
@@ -431,72 +406,72 @@ void Parser::allocExpression()
 
 void Parser::numExpression()
 {
-    term();
-    while (lToken->name == OP_MAIS || lToken->name == OP_MENOS)
-    {
-        advance();
-        term();
-    }
+	term();
+	while (lToken->name == OP_MAIS || lToken->name == OP_MENOS)
+	{
+		advance();
+		term();
+	}
 }
 
 void Parser::term()
 {
-    unaryExpression();
-    while (lToken->name == OP_MUL || lToken->name == OP_DIV || lToken->name == OP_MOD)
-    {
-        advance();
-        unaryExpression();
-    }
+	unaryExpression();
+	while (lToken->name == OP_MUL || lToken->name == OP_DIV || lToken->name == OP_MOD)
+	{
+		advance();
+		unaryExpression();
+	}
 }
 
 void Parser::unaryExpression()
 {
-    if (lToken->name == OP_MAIS || lToken->name == OP_MENOS)
-    {
-        advance();
-    }
-    factor();
+	if (lToken->name == OP_MAIS || lToken->name == OP_MENOS)
+	{
+		advance();
+	}
+	factor();
 }
 
 void Parser::factor()
 {
-    switch (lToken->name)
-    {
-        case INTEGER_LITERAL:
-            match(INTEGER_LITERAL);
-            break;
-        case STRING_LITERAL:
-            match(STRING_LITERAL);
-            break;
-        case ID: 
-            lValue();
-            break;
-        case SEP_LPAREN: 
-            match(SEP_LPAREN);
-            expression();
-            match(SEP_RPAREN);
-            break;
-        default:
-            error("Fator (número, string, ID ou expressão) esperado.");
-    }
+	switch (lToken->name)
+	{
+	case INTEGER_LITERAL:
+		match(INTEGER_LITERAL);
+		break;
+	case STRING_LITERAL:
+		match(STRING_LITERAL);
+		break;
+	case ID:
+		lValue();
+		break;
+	case SEP_LPAREN:
+		match(SEP_LPAREN);
+		expression();
+		match(SEP_RPAREN);
+		break;
+	default:
+		error("Fator (número, string, ID ou expressão) esperado.");
+	}
 }
 
 void Parser::argListOpt()
 {
-    if (lToken->name == INTEGER_LITERAL || lToken->name == STRING_LITERAL || lToken->name == ID || lToken->name == SEP_LPAREN ||lToken->name == OP_MAIS || lToken->name == OP_MENOS)
-    {
-        argList();
-    }
+	if (lToken->name == INTEGER_LITERAL || lToken->name == STRING_LITERAL || lToken->name == ID || lToken->name == SEP_LPAREN || lToken->name == OP_MAIS || lToken->name == OP_MENOS)
+	{
+		argList();
+	}
 }
 
 void Parser::argList()
 {
-    expression();
-    while (lToken->name == SEP_VIRG)
-    {
-        match(SEP_VIRG);
-        expression();
-    }
+	expression();
+	while (lToken->name == SEP_VIRG)
+	{
+		match(SEP_VIRG);
+		expression();
+	}
 }
 
 void Parser::ifStat()
